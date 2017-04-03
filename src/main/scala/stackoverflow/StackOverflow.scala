@@ -83,7 +83,8 @@ class StackOverflow extends Serializable {
       * Answers to a question with "𝚒𝚍" == QID have (a) "𝚙𝚘𝚜𝚝𝚃𝚢𝚙𝚎𝙸𝚍" == 2 and (b) "𝚙𝚊𝚛𝚎𝚗𝚝𝙸𝚍" == QID.
       */
 
-    val questions = postings.filter(_.postingType ==1).map((posting) => (posting.id, posting))
+    val questions = postings.filter(_.postingType == 1).map((posting) => (posting.id, posting))
+
     val answers = for {
       posting <- postings.filter(_.postingType == 2)
        parentId <- posting.parentId
@@ -96,6 +97,8 @@ class StackOverflow extends Serializable {
   /** Compute the maximum score for each posting */
   def scoredPostings(grouped: RDD[(Int, Iterable[(Posting, Posting)])]): RDD[(Posting, Int)] = {
 
+    /** return an RDD containing pairs of (a) questions and (b) the score of the answer with the highest score */
+
     def answerHighScore(as: Array[Posting]): Int = {
       var highScore = 0
           var i = 0
@@ -107,8 +110,7 @@ class StackOverflow extends Serializable {
           }
       highScore
     }
-
-    ???
+    grouped.flatMap(p => p._2).groupByKey().mapValues(posting => answerHighScore(posting.toArray))
   }
 
 
