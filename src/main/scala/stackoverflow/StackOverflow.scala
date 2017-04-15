@@ -10,6 +10,29 @@ import scala.reflect.ClassTag
 /** A raw stackoverflow posting, either a question or an answer */
 case class Posting(postingType: Int, id: Int, acceptedAnswer: Option[Int], parentId: Option[Int], score: Int, tags: Option[String]) extends Serializable
 
+/**
+postTypeId:     Type of the post. Type 1 = question,
+                  type 2 = answer.
+
+id:             Unique id of the post (regardless of type).
+
+acceptedAnswer: Id of the accepted answer post. This
+                  information is optional, so maybe be missing
+                  indicated by an empty string.
+
+parentId:       For an answer: id of the corresponding
+                  question. For a question:missing, indicated
+                  by an empty string.
+
+score:          The StackOverflow score (based on user
+                  votes).
+
+tag:            The tag indicates the programming language
+                  that the post is about, in case it's a
+                  question, or missing in case it's an answer.
+  */
+
+
 
 /** The main class */
 object StackOverflow extends StackOverflow {
@@ -99,18 +122,10 @@ class StackOverflow extends Serializable {
 
     /** return an RDD containing pairs of (a) questions and (b) the score of the answer with the highest score */
 
-    def answerHighScore(as: Array[Posting]): Int = {
-      var highScore = 0
-          var i = 0
-          while (i < as.length) {
-            val score = as(i).score
-                if (score > highScore)
-                  highScore = score
-                  i += 1
-          }
-      highScore
-    }
-    grouped.flatMap(p => p._2).groupByKey().mapValues(posting => answerHighScore(posting.toArray))
+    def answerHighScore(as: Iterable[Posting]): Int = as.map(p => p.score).max
+
+    grouped.flatMap(_._2).groupByKey().mapValues(answerHighScore)
+
   }
 
 
@@ -130,7 +145,9 @@ class StackOverflow extends Serializable {
       }
     }
 
-    ???
+    (for(score <- scored
+         if firstLangInTag(score._1.tags, langs).isDefined)
+      yield (langSpread * firstLangInTag(score._1.tags, langs).get, score._2)).persist()
   }
 
 
